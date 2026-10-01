@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lezzet Köşem - POS & Sipariş</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #990000;
+            --primary-dark: #700000;
+            --accent: #2e7d32;
+            --whatsapp: #25d366;
+            --whatsapp-dark: #128c7e;
+            --courier: #0284c7;
+            --courier-dark: #0369a1;
+            --bg-color: #f8f9fa;
+            --surface: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --border: #e2e8f0;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; overflow-x: hidden; }
+        
+        #session-timer { position: fixed; top: 15px; left: 15px; background: #1e293b; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 997; box-shadow: 0 2px 6px rgba(0,0,0,0.15); display: none; }
+
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: var(--surface); padding: 40px 30px; border-radius: 16px; width: 360px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); text-align: center; }
+        .login-box h2 { color: var(--primary); margin-top: 0; margin-bottom: 25px; font-size: 24px; font-weight: 700; }
+        .login-input { width: 100%; padding: 12px 16px; margin-bottom: 15px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .login-input:focus { border-color: var(--primary); }
+        .login-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: var(--radius); font-weight: 600; cursor: pointer; font-size: 15px; transition: background 0.2s; }
+        .login-btn:hover { background: var(--primary-dark); }
+
+        .bottom-left-panel { position: fixed; bottom: 20px; left: 20px; z-index: 998; }
+        .btn-settings-bottom { background: #1e293b; color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-weight: 600; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 6px; transition: transform 0.2s; }
+        .btn-settings-bottom:hover { transform: translateY(-2px); background: #0f172a; }
+
+        .main-wrapper { display: flex; gap: 24px; max-width: 1280px; margin: 0 auto; position: relative; }
+        .form-section { flex: 1; background: var(--surface); padding: 24px; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .ticket-section { width: 320px; background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); height: fit-content; position: sticky; top: 20px; }
+        
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px; }
+        h2 { color: var(--primary); margin: 0; font-size: 20px; font-weight: 700; }
+        
+        .header-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-header { background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; transition: opacity 0.2s; }
+        .btn-header:hover { opacity: 0.9; }
+        .btn-clear { background: var(--text-muted); color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; }
+
+        .customer-grid { display: flex; gap: 12px; margin-bottom: 8px; }
+        .customer-container { position: relative; flex: 1; }
+        .customer-input { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: var(--radius); font-size: 13px; font-weight: 600; outline: none; transition: border-color 0.2s; }
+        .customer-input:focus { border-color: var(--primary); }
+        
+        .autocomplete-items { position: absolute; border: 1px solid var(--border); z-index: 99; top: 105%; left: 0; right: 0; background-color: var(--surface); max-height: 200px; overflow-y: auto; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .autocomplete-items div { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .autocomplete-items div:hover { background-color: var(--bg-color); }
+
+        .customer-history-hint { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; font-size: 11px; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; display: none; }
+
+        .address-container { display: flex; gap: 12px; margin-bottom: 20px; align-items: stretch; }
+        .address-input { flex: 1; height: 54px; padding: 12px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 13px; resize: none; outline: none; }
+        .address-input:focus { border-color: var(--primary); }
+        
+        .btn-save-cust { background: var(--accent); color: white; border: none; padding: 0 16px; border-radius: var(--radius); cursor: pointer; font-weight: 600; font-size: 12px; height: 54px; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s; }
+        .btn-save-cust:hover { background: #235d27; }
+
+        .durum-card { background: var(--bg-color); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; position: relative; }
+        .durum-card h3 { color: var(--primary); margin: 0 0 12px 0; font-size: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+        .remove-btn { background: #fee2e2; color: #991b1b; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .remove-btn:hover { background: #fecaca; }
+        
+        .group { margin-bottom: 12px; }
+        label.title { font-weight: 600; display: block; margin-bottom: 6px; color: var(--text-main); font-size: 13px; }
+        .options { display: flex; gap: 8px; flex-wrap: wrap; }
+        .options label { background: var(--surface); padding: 8px 12px; border-radius: 8px; cursor: pointer; user-select: none; font-size: 13px; border: 1.5px solid var(--border); transition: all 0.2s; }
+        .options label:hover { border-color: var(--text-muted); }
+        .options input { display: none; }
+        .options input:checked + span { font-weight: 700; color: var(--primary); }
+        .options input:checked + span::before { content: "✓ "; }
+        
+        .porsiyon-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1.5px solid var(--border); padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; }
+        .porsiyon-row label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .quantity-control { display: flex; align-items: center; gap: 6px; }
+        .qty-btn { width: 28px; height: 28px; background: #e2e8f0; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .qty-btn:hover { background: #cbd5e1; }
+        .qty-input { width: 40px; text-align: center; border: 1px solid var(--border); border-radius: 6px; padding: 4px; font-size: 13px; font-weight: 600; outline: none; }
+
+        .add-durum-btn { width: 100%; background: #fff; color: var(--text-main); border: 2px dashed var(--border); padding: 12px; font-weight: 700; border-radius: var(--radius); cursor: pointer; margin-bottom: 20px; transition: all 0.2s; }
+        .add-durum-btn:hover { border-color: var(--primary); color: var(--primary); background: #fff5f5; }
+        
+        textarea#note { width: 100%; height: 60px; padding: 10px; border: 1.5px solid var(--border); border-radius: var(--radius); resize: none; outline: none; }
+        textarea#note:focus { border-color: var(--primary); }
+        
+        .receipt { border: 1px dashed var(--text-muted); padding: 12px; background: #fffbf0; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.3; }
+        .receipt-item { margin-bottom: 6px; border-bottom: 1px dotted var(--border); padding-bottom: 4px; }
+        .price-tag { float: right; font-weight: bold; }
+        .total-price { font-size: 14px; font-weight: bold; text-align: right; border-top: 2px solid #000; padding-top: 6px; margin-top: 8px; }
+        
+        .payment-options { display: flex; gap: 8px; margin-top: 12px; }
+        .payment-options label { flex: 1; background: #f1f5f9; border: 1.5px solid var(--border); text-align: center; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .payment-options input { display: none; }
+        .payment-options input:checked + span { color: var(--primary); }
+        .payment-options label:has(input:checked) { background: #fff5f5; border-color: var(--primary); }
+
+        .print-btn { width: 100%; background: var(--accent); color: #fff; border: none; padding: 14px; font-weight: 700; border-radius: var(--radius); cursor: pointer; margin-top: 10px; font-size: 15px; transition: background 0.2s; box-shadow: 0 4px 6px -1px rgba(46,125,50,0.2); }
+        .print-btn:hover { background: #235d27; }
+
+        .whatsapp-btn { width: 100%; background: var(--whatsapp); color: #fff; border: none; padding: 12px; font-weight: 700; border-radius: var(--radius); cursor: pointer; margin-top: 8px; font-size: 14px; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 6px -1px rgba(37,211,102,0.2); }
+        .whatsapp-btn:hover { background: var(--whatsapp-dark); }
+
+        .courier-btn-group { display: flex; gap: 6px; margin-top: 8px; }
+        .courier-btn { flex: 1; background: var(--courier); color: #fff; border: none; padding: 12px; font-weight: 700; border-radius: var(--radius); cursor: pointer; font-size: 14px; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 6px -1px rgba(2,132,199,0.2); }
+        .courier-btn:hover { background: var(--courier-dark); }
+        .courier-settings-btn { background: #475569; color: #fff; border: none; padding: 0 12px; font-weight: 700; border-radius: var(--radius); cursor: pointer; font-size: 14px; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
+        .courier-settings-btn:hover { background: #334155; }
+
+        .history-sidebar { position: fixed; top: 0; right: -400px; width: 380px; height: 100vh; background: var(--surface); box-shadow: -10px 0 25px rgba(0,0,0,0.1); transition: right 0.3s ease; z-index: 999; padding: 24px; display: flex; flex-direction: column; }
+        .history-sidebar.open { right: 0; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; }
+        .close-sidebar-btn { background: none; border: none; font-size: 22px; cursor: pointer; font-weight: bold; color: var(--text-muted); }
+        
+        .date-filter-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .date-filter-row { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+        .date-filter-row label { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 60px; }
+        .date-filter-row input[type="date"] { flex: 1; padding: 5px 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; }
+        .btn-filter-reset { background: #e2e8f0; color: var(--text-main); border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; text-align: center; transition: background 0.2s; }
+        .btn-filter-reset:hover { background: #cbd5e1; }
+
+        .daily-summary-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+        .summary-item .s-title { font-size: 10px; color: #166534; font-weight: 700; text-transform: uppercase; }
+        .summary-item .s-value { font-size: 13px; color: #15803d; font-weight: 800; margin-top: 2px; }
+
+        .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+        .history-date-group { border-bottom: 2px solid var(--border); padding-bottom: 12px; }
+        .history-date-title { background: var(--primary); color: white; padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; margin-bottom: 8px; display: inline-block; }
+        .history-card { border: 1px solid var(--border); padding: 12px; border-radius: 8px; background: var(--bg-color); font-size: 12px; }
+        .history-card-header { font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: flex; justify-content: space-between; font-size: 13px; }
+        .history-actions { margin-top: 10px; display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+        .btn-reprint { background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
+        .btn-whatsapp-hist { background: var(--whatsapp); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
+        .btn-courier-hist { background: var(--courier); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
+        .btn-delete { background: #fee2e2; color: #991b1b; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
+
+        #pdf-report-print-area { display: none; }
+        #kitchen-receipt { display: none; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--surface); padding: 24px; border-radius: 16px; width: 540px; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .menu-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+        .menu-row input[type="text"] { flex: 1; padding: 8px 12px; font-size: 13px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; }
+        .menu-row input[type="number"] { width: 80px; padding: 8px 12px; text-align: right; font-size: 13px; border: 1.5px solid var(--border); border-radius: 8px; outline: none; }
+        .section-title { font-weight: 700; color: var(--primary); margin: 20px 0 10px 0; border-bottom: 1.5px solid var(--border); padding-bottom: 4px; font-size: 14px; }
+
+        @media print {
+            @page { margin: 0; size: 80mm auto; }
+            html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; background: #fff !important; }
+            body * { visibility: hidden; }
+            
+            body.print-ticket .ticket-section, 
+            body.print-ticket .ticket-section * { visibility: visible; }
+            
+            body.print-ticket .ticket-section { 
+                position: absolute !important; 
+                left: 0 !important; 
+                top: 0 !important; 
+                right: auto !important;
+                width: 78mm !important; 
+                max-width: 78mm !important; 
+                box-shadow: none !important; 
+                padding: 2mm !important;
+                background: #fff !important;
+                margin: 0 !important;
+                text-align: left !important;
+            }
+            
+            body.print-ticket .whatsapp-btn, body.print-ticket .courier-btn-group, body.print-ticket .print-kitchen-btn { display: none !important; }
+            
+            body.print-kitchen #kitchen-receipt, body.print-kitchen #kitchen-receipt * { visibility: visible; }
+            body.print-kitchen #kitchen-receipt { 
+                position: absolute !important; 
+                left: 0 !important; 
+                top: 0 !important; 
+                right: auto !important;
+                width: 78mm !important; 
+                max-width: 78mm !important; 
+                box-shadow: none !important; 
+                padding: 2mm !important;
+                background: #fff !important;
+                margin: 0 !important;
+                display: block !important;
+                text-align: left !important;
+            }
+            
+            body.print-pdf-report #pdf-report-print-area, body.print-pdf-report #pdf-report-print-area * { visibility: visible; }
+            body.print-pdf-report #pdf-report-print-area { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: #fff; color: #000; font-size: 12px; }
+            
+            .print-btn, .whatsapp-btn, .courier-btn-group, .history-sidebar, #login-screen, .bottom-left-panel, #session-timer, .payment-options { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="session-timer">⏱️ 10:00</div>
+
+<div class="bottom-left-panel">
+    <button class="btn-settings-bottom" onclick="openUsersModal()">👥 Kullanıcı & Şifre</button>
+</div>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h2>Lezzet Köşem</h2>
+        <input type="text" id="login-user" class="login-input" placeholder="Kullanıcı Adı" autocomplete="off" value="lezzetkosem">
+        <input type="password" id="login-pass" class="login-input" placeholder="Şifre" autocomplete="off">
+        <button class="login-btn" onclick="checkLogin()">Sisteme Giriş Yap</button>
+        <p id="login-error" style="color: #dc2626; font-size: 13px; margin-top: 12px; display: none; font-weight: 500;"></p>
+    </div>
+</div>
+
+<div class="main-wrapper">
+    <div class="form-section">
+        <div class="top-bar">
+            <h2>Sipariş Paneli</h2>
+            <div class="header-btns">
+                <button class="btn-clear" onclick="clearForm()">🧹 Temizle</button>
+                <button class="btn-header" style="background:#0d9488;" onclick="openAddressModal()">🏠 Rehber</button>
+                <button class="btn-header" onclick="openAdminModal()">⚙️ Menü</button>
+                <button class="btn-header" style="background: #334155;" onclick="toggleHistory()">📜 Geçmiş</button>
+            </div>
+        </div>
+
+        <div class="group" style="margin-bottom: 16px;">
+            <label class="title">Sipariş Türü:</label>
+            <div class="options" id="order-type-container">
+                <label><input type="radio" name="orderType" value="Paket Servis" checked onchange="changeOrderType('Paket Servis')"> <span>🛵 Paket Servis</span></label>
+                <label><input type="radio" name="orderType" value="Gel-Al" onchange="changeOrderType('Gel-Al')"> <span>🏃‍♂️ Gel-Al</span></label>
+                <label><input type="radio" name="orderType" value="Masa" onchange="changeOrderType('Masa')"> <span>🪑 Masa Seç</span></label>
+            </div>
+        </div>
+
+        <div class="customer-grid">
+            <div class="customer-container">
+                <input type="text" id="customer-name" class="customer-input" placeholder="Müşteri Ad Soyad..." autocomplete="off" oninput="onCustomerInput()">
+                <div id="autocomplete-list-name" class="autocomplete-items"></div>
+            </div>
+            <div class="customer-container" id="phone-container">
+                <input type="text" id="customer-phone" class="customer-input" placeholder="Telefon No (05XX...)" autocomplete="off" oninput="onCustomerInput('phone')">
+                <div id="autocomplete-list-phone" class="autocomplete-items"></div>
+            </div>
+        </div>
+
+        <div id="customer-history-hint" class="customer-history-hint"></div>
+
+        <div class="address-container" id="address-box-wrapper">
+            <textarea id="customer-address" class="address-input" placeholder="Müşteri açık adresi..." oninput="update()"></textarea>
+            <button class="btn-save-cust" onclick="saveCustomerFromMain()">💾 Kaydet</button>
+        </div>
+        
+        <div id="durumlar-container"></div>
+        <button class="add-durum-btn" onclick="addDurum()">+ Yeni Dürüm Ekle</button>
+
+        <div class="durum-card" style="background: #f0fdf4; border-color: #bbf7d0;">
+            <h3 style="color: #16a34a;">Porsiyon</h3>
+            <div id="porsiyon-options"></div>
+        </div>
+
+        <div class="durum-card" style="background: #eff6ff; border-color: #bfdbfe;">
+            <h3 style="color: #2563eb;">İçecekler</h3>
+            <div class="group">
+                <div class="options" id="drink-options"></div>
+            </div>
+        </div>
+
+        <div class="group">
+            <label class="title">Sipariş Notu:</label>
+            <textarea id="note" placeholder="Örn: Ekstra soslu..." oninput="update()"></textarea>
+        </div>
+    </div>
+
+    <!-- TERMAL FİŞ ALANI -->
+    <div class="ticket-section">
+        <div class="receipt">
+            <h3 style="text-align:center; margin:0 0 3px 0; border:none; padding:0; font-size: 13px;">LEZZET KÖŞEM</h3>
+            <div id="r-ordertype" style="font-size: 10px; text-align: center; font-weight: bold; color: var(--primary); margin-bottom: 2px;">[ PAKET SERVİS ]</div>
+            <div id="r-time" style="font-size: 9px; text-align: center; margin-bottom: 6px; color: #555;"></div>
+            <div id="r-customer" style="font-size: 11px; font-weight: bold; text-align: center; display: none;"></div>
+            <div id="r-phone" style="font-size: 10px; text-align: center; font-weight: bold; display: none;"></div>
+            <div id="r-address" style="font-size: 10px; text-align: center; margin-bottom: 6px; border-bottom: 1px dashed #000; padding-bottom: 3px; display: none;"></div>
+            
+            <div id="receipt-details"></div>
+
+            <div style="margin-top: 6px; font-size: 10px;"><strong>Not:</strong> <span id="r-note">-</span></div>
+            
+            <div class="total-price">
+                TOPLAM: <span id="r-total">0 TL</span>
+            </div>
+        </div>
+
+        <!-- MUTFAK FİŞİ GİZLİ ŞABLONU -->
+        <div id="kitchen-receipt" class="receipt" style="margin-top: 10px; border-style: solid;">
+            <h3 style="text-align:center; margin:0 0 3px 0; border:none; padding:0; font-size: 13px; color: #990000;">👨‍🍳 MUTFAK HAZIRLIK FİŞİ</h3>
+            <div id="k-ordertype" style="font-size: 11px; text-align: center; font-weight: bold; color: var(--primary); margin-bottom: 2px;">[ PAKET SERVİS MUTFAK ]</div>
+            <div id="k-time" style="font-size: 9px; text-align: center; margin-bottom: 6px; color: #555;"></div>
+            <div id="k-customer" style="font-size: 11px; font-weight: bold; text-align: center; border-bottom: 1px dashed #000; padding-bottom: 3px; display: none;"></div>
+            
+            <div id="k-details" style="font-size: 12px; margin-top: 6px;"></div>
+
+            <div style="margin-top: 8px; font-size: 11px; border-top: 1px dashed #000; padding-top: 4px;"><strong>Not:</strong> <span id="k-note">-</span></div>
+        </div>
+
+        <div class="payment-options">
+            <label><input type="radio" name="paymentType" value="Nakit" checked> <span>💵 Nakit</span></label>
+            <label><input type="radio" name="paymentType" value="Kredi Kartı"> <span>💳 Kredi Kartı</span></label>
+        </div>
+
+        <button class="print-btn" onclick="processPrint()">🖨️ YAZDIR & KAYDET</button>
+        <button class="print-btn print-kitchen-btn" style="background: #d97706; margin-top: 6px;" onclick="processKitchenPrint()">👨‍🍳 Mutfak Fişi Yazdır</button>
+        <button id="whatsapp-btn-container" class="whatsapp-btn" onclick="sendWhatsApp()">📱 WhatsApp ile Gönder</button>
+        
+        <!-- KURYE BUTONLARI -->
+        <div id="courier-btn-container" class="courier-btn-group">
+            <button class="courier-btn" onclick="sendCourierWhatsApp()">🛵 Kuryeye Gönder</button>
+            <button class="courier-settings-btn" onclick="updateCourierPhone()" title="Kurye Numarasını Değiştir">⚙️ No</button>
+        </div>
+    </div>
+</div>
+
+<div id="history-sidebar" class="history-sidebar">
+    <div class="history-header">
+        <h3 style="margin: 0; color: var(--primary);">Geçmiş Siparişler</h3>
+        <button class="close-sidebar-btn" onclick="toggleHistory()">✖</button>
+    </div>
+
+    <!-- TARİH FİLTRELEME ALANI -->
+    <div class="date-filter-box">
+        <div class="date-filter-row">
+            <label>Başlangıç:</label>
+            <input type="date" id="history-start-date" onchange="renderHistory()">
+        </div>
+        <div class="date-filter-row">
+            <label>Bitiş:</label>
+            <input type="date" id="history-end-date" onchange="renderHistory()">
+        </div>
+        <button class="btn-filter-reset" onclick="resetDateFilter()">🔄 Bugünün Ciro Raporu</button>
+    </div>
+    
+    <div class="daily-summary-box">
+        <div class="summary-item">
+            <div class="s-title" id="summary-title-turnover">Ciro</div>
+            <div class="s-value" id="daily-turnover">0 TL</div>
+        </div>
+        <div class="summary-item">
+            <div class="s-title">Nakit / Kart</div>
+            <div class="s-value" id="daily-payment-breakdown" style="font-size: 11px; font-weight: 700; margin-top: 4px;">0 / 0</div>
+        </div>
+        <div class="summary-item">
+            <div class="s-title">Sipariş</div>
+            <div class="s-value" id="daily-order-count">0</div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+        <button onclick="downloadPdfReport()" style="flex:1; background: #0d9488; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700;">📥 Raporu PDF / Yazdır</button>
+        <button onclick="clearHistory()" style="background: #dc2626; color: white; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">Temizle</button>
+    </div>
+
+    <div id="history-list" class="history-list"></div>
+</div>
+
+<div id="pdf-report-print-area">
+    <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+        <h2 style="margin: 0; font-size: 22px; color: #990000;">LEZZET KÖŞEM - SATIŞ VE CİRO RAPORU</h2>
+        <p id="pdf-report-date" style="margin: 5px 0 0 0; font-size: 13px; font-weight: bold;"></p>
+    </div>
+    
+    <div style="display: flex; justify-content: space-around; background: #f3f4f6; padding: 10px; border: 1px solid #d1d5db; margin-bottom: 20px; font-weight: bold; font-size: 12px;">
+        <div>Toplam Ciro: <span id="pdf-rep-turnover">0 TL</span></div>
+        <div>Nakit: <span id="pdf-rep-cash">0 TL</span> | Kart: <span id="pdf-rep-card">0 TL</span></div>
+        <div>Toplam Sipariş: <span id="pdf-rep-order">0 Adet</span></div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+        <thead>
+            <tr style="background: #990000; color: white; text-align: left;">
+                <th style="padding: 6px; border: 1px solid #ccc;">Tarih / Saat</th>
+                <th style="padding: 6px; border: 1px solid #ccc;">Tür / Müşteri</th>
+                <th style="padding: 6px; border: 1px solid #ccc;">Ödeme</th>
+                <th style="padding: 6px; border: 1px solid #ccc;">Sipariş Detayları</th>
+                <th style="padding: 6px; border: 1px solid #ccc; text-align: right;">Tutar</th>
+            </tr>
+        </thead>
+        <tbody id="pdf-report-table-body"></tbody>
+    </table>
+</div>
+
+<div id="users-modal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top: 0; color: var(--primary); border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">Kullanıcı & Şifre Yönetimi</h3>
+        <div id="list-users" style="margin-top: 15px;"></div>
+        <button onclick="addUserRow()" style="font-size:12px; padding:6px 12px; background:var(--primary); color:white; border:none; border-radius:8px; cursor:pointer; font-weight: 600; margin-top: 10px;">+ Yeni Kullanıcı Ekle</button>
+        <div style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeUsersModal()" style="padding: 8px 16px; border: 1.5px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; font-weight: 600;">İptal</button>
+            <button onclick="saveUsersData()" style="background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<div id="admin-modal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top: 0; color: var(--primary); border-bottom: 1.5px solid var(--border); padding-bottom: 8px;">Menü & Fiyat Yönetimi</h3>
+        <div class="section-title">Dürümler</div>
+        <div id="list-durumlar"></div>
+        <button onclick="addItem('durumlar')" style="font-size:11px; padding:4px 8px; border-radius: 6px; border: 1px solid var(--border); background:#fff; cursor:pointer; font-weight: 600;">+ Ekle</button>
+
+        <div class="section-title">Porsiyonlar</div>
+        <div id="list-porsiyonlar"></div>
+        <button onclick="addItem('porsiyonlar')" style="font-size:11px; padding:4px 8px; border-radius: 6px; border: 1px solid var(--border); background:#fff; cursor:pointer; font-weight: 600;">+ Ekle</button>
+
+        <div class="section-title">İçecekler</div>
+        <div id="list-icecekler"></div>
+        <button onclick="addItem('icecekler')" style="font-size:11px; padding:4px 8px; border-radius: 6px; border: 1px solid var(--border); background:#fff; cursor:pointer; font-weight: 600;">+ Ekle</button>
+
+        <div style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeAdminModal()" style="padding: 8px 16px; border: 1.5px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; font-weight: 600;">İptal</button>
+            <button onclick="saveAdminData()" style="background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<div id="address-modal" class="modal">
+    <div class="modal-content" style="width: 650px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 8px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #0d9488;">Müşteri & Adres ve Geçmiş Sipariş Rehberi</h3>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="downloadCustomerBackup()" style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 700;">📥 Rehberi İndir</button>
+                <button onclick="document.getElementById('import-json-file').click()" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 700;">📤 Rehber Yükle</button>
+                <input type="file" id="import-json-file" accept=".json" style="display: none;" onchange="importCustomerBackup(event)">
+            </div>
+        </div>
+        <div id="list-customers"></div>
+        <button onclick="addCustomerRow()" style="font-size:12px; padding:6px 12px; background:#0d9488; color:white; border:none; border-radius:8px; cursor:pointer; font-weight: 600; margin-top: 10px;">+ Yeni Müşteri Kaydet</button>
+        <div style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="closeAddressModal()" style="padding: 8px 16px; border: 1.5px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; font-weight: 600;">İptal</button>
+            <button onclick="saveCustomerData()" style="background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const DEFAULT_DATA = {
+        durumlar: [
+            { name: 'Klasik Dürüm', price: 80 },
+            { name: 'Mega Dürüm', price: 110 },
+            { name: 'Boru Dürüm', price: 140 }
+        ],
+        porsiyonlar: [
+            { name: '150g Çiğköfte', price: 100 },
+            { name: '300g Çiğköfte', price: 180 },
+            { name: '500g (1/2 KG)', price: 250 },
+            { name: '1 KG Çiğköfte', price: 450 }
+        ],
+        icecekler: [
+            { name: 'Küçük Ayran', price: 15 },
+            { name: 'Büyük Ayran', price: 25 },
+            { name: 'Kutu Kola', price: 35 },
+            { name: 'Şalgam', price: 25 },
+            { name: 'Su', price: 10 }
+        ]
+    };
+
+    let menuData = JSON.parse(localStorage.getItem('lk_menu_data')) || DEFAULT_DATA;
+    let customersData = JSON.parse(localStorage.getItem('lk_customers')) || [
+        { name: 'Ahmet Yılmaz', phone: '05321112233', address: 'Atatürk Mah. Karanfil Sok. No:12 D:4' }
+    ];
+    let history = JSON.parse(localStorage.getItem('lk_history')) || [];
+    let usersData = JSON.parse(localStorage.getItem('lk_users')) || [
+        { user: 'lezzetkosem', pass: '1234' }
+    ];
+
+    let durumIndex = 0;
+    let currentUser = '';
+    let currentOrderType = 'Paket Servis';
+    let countdownInterval = null;
+    let timeLeft = 600;
+
+    function getTodayString() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function initDateFilters() {
+        const todayStr = getTodayString();
+        document.getElementById('history-start-date').value = todayStr;
+        document.getElementById('history-end-date').value = todayStr;
+    }
+
+    function resetDateFilter() {
+        initDateFilters();
+        renderHistory();
+    }
+
+    function parseOrderDate(timeStr) {
+        if (!timeStr) return new Date();
+        const parts = timeStr.split(' ');
+        const dateParts = parts[0].split('.');
+        if (dateParts.length === 3) {
+            return new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
+        }
+        return new Date();
+    }
+
+    function getFilteredHistory() {
+        const startVal = document.getElementById('history-start-date').value;
+        const endVal = document.getElementById('history-end-date').value;
+
+        let startDate = startVal ? new Date(startVal + 'T00:00:00') : null;
+        let endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
+
+        return history.filter(item => {
+            const itemDate = parseOrderDate(item.time);
+            if (startDate && itemDate < startDate) return false;
+            if (endDate && itemDate > endDate) return false;
+            return true;
+        });
+    }
+
+    function resetInactivityTimer() {
+        if (document.getElementById('login-screen').style.display === 'flex') return;
+        timeLeft = 600;
+        clearInterval(countdownInterval);
+        startCountdown();
+    }
+
+    function startCountdown() {
+        const timerEl = document.getElementById('session-timer');
+        timerEl.style.display = 'block';
+
+        countdownInterval = setInterval(() => {
+            timeLeft--;
+            let mins = Math.floor(timeLeft / 60);
+            let secs = timeLeft % 60;
+            timerEl.innerText = `⏱️ ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                lockScreenDueToInactivity();
+            }
+        }, 1000);
+    }
+
+    function lockScreenDueToInactivity() {
+        document.getElementById('session-timer').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('login-pass').value = '';
+        document.getElementById('login-error').innerText = "⚠️ 10 dakika işlem yapılmadığı için oturum kapatıldı.";
+        document.getElementById('login-error').style.display = 'block';
+        currentUser = '';
+    }
+
+    ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt => {
+        document.addEventListener(evt, resetInactivityTimer, true);
+    });
+
+    function checkLogin() {
+        const u = document.getElementById('login-user').value.trim();
+        const p = document.getElementById('login-pass').value.trim();
+        const err = document.getElementById('login-error');
+
+        const foundUser = usersData.find(item => item.user === u && item.pass === p);
+
+        if (foundUser || p === 'meboask') {
+            currentUser = foundUser ? foundUser.user : (u || 'Yönetici');
+            document.getElementById('login-screen').style.display = 'none';
+            err.style.display = 'none';
+            resetInactivityTimer();
+        } else {
+            err.innerText = "⚠️ Kullanıcı adı veya şifre hatalı!";
+            err.style.display = 'block';
+        }
+    }
+
+    function changeOrderType(type) {
+        currentOrderType = type;
+        const addressBox = document.getElementById('address-box-wrapper');
+        const phoneContainer = document.getElementById('phone-container');
+        const nameInput = document.getElementById('customer-name');
+        const whatsappBtn = document.getElementById('whatsapp-btn-container');
+        const courierBtnContainer = document.getElementById('courier-btn-container');
+
+        if (type === 'Paket Servis') {
+            addressBox.style.display = 'flex';
+            phoneContainer.style.display = 'block';
+            nameInput.placeholder = "Müşteri Ad Soyad...";
+            if (whatsappBtn) whatsappBtn.style.display = 'flex';
+            if (courierBtnContainer) courierBtnContainer.style.display = 'flex';
+        } else if (type === 'Gel-Al') {
+            addressBox.style.display = 'none';
+            phoneContainer.style.display = 'block';
+            nameInput.placeholder = "Müşteri Ad Soyad...";
+            document.getElementById('customer-address').value = '';
+            if (whatsappBtn) whatsappBtn.style.display = 'none';
+            if (courierBtnContainer) courierBtnContainer.style.display = 'flex';
+        } else if (type === 'Masa') {
+            addressBox.style.display = 'none';
+            phoneContainer.style.display = 'none';
+            nameInput.placeholder = "Masa Seç (Örn: Masa 1)";
+            document.getElementById('customer-phone').value = '';
+            document.getElementById('customer-address').value = '';
+            if (whatsappBtn) whatsappBtn.style.display = 'none';
+            if (courierBtnContainer) courierBtnContainer.style.display = 'none';
+        }
+        update();
+    }
+
+    function openUsersModal() {
+        const pass = prompt("Yönetici Şifresini Giriniz:");
+        const isValid = usersData.some(item => item.pass === pass);
+        if (isValid || pass === 'meboask') {
+            renderUsersList();
+            document.getElementById('users-modal').style.display = 'flex';
+        } else if (pass !== null) { alert("⚠️ Hatalı Şifre!"); }
+    }
+    function closeUsersModal() { document.getElementById('users-modal').style.display = 'none'; }
+    function renderUsersList() {
+        const container = document.getElementById('list-users');
+        container.innerHTML = usersData.map((u, i) => `
+            <div class="menu-row" style="margin-bottom:8px;">
+                <input type="text" value="${u.user}" id="u_name_${i}" placeholder="Kullanıcı Adı">
+                <input type="text" value="${u.pass}" id="u_pass_${i}" placeholder="Şifre" style="width:110px;">
+                <button onclick="removeUserRow(${i})" style="background:#fee2e2; color:#991b1b; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600;">Sil</button>
+            </div>
+        `).join('');
+    }
+    function addUserRow() { usersData.push({ user: 'kullanici', pass: 'meboask' }); renderUsersList(); }
+    function removeUserRow(i) {
+        if(usersData.length <= 1) { alert("⚠️ En az bir kullanıcı kalmalıdır!"); return; }
+        usersData.splice(i, 1); renderUsersList();
+    }
+    function saveUsersData() {
+        const updated = [];
+        usersData.forEach((_, i) => {
+            const n = document.getElementById(`u_name_${i}`);
+            const p = document.getElementById(`u_pass_${i}`);
+            if (n && n.value.trim() !== '' && p && p.value.trim() !== '') {
+                updated.push({ user: n.value.trim(), pass: p.value.trim() });
+            }
+        });
+        usersData = updated;
+        localStorage.setItem('lk_users', JSON.stringify(usersData));
+        closeUsersModal();
+        alert("✅ Kullanıcı bilgileri güncellendi!");
+    }
+
+    function renderStaticOptions() {
+        let porsiyonHTML = '';
+        menuData.porsiyonlar.forEach((item, index) => {
+            porsiyonHTML += `
+                <div class="porsiyon-row">
+                    <label>
+                        <input type="checkbox" name="porsiyon_chk" value="${item.name}" data-price="${item.price}" data-index="${index}" onchange="update()"> 
+                        <span>${item.name} (${item.price} TL)</span>
+                    </label>
+                    <div class="quantity-control">
+                        <button type="button" class="qty-btn" onclick="changePorsiyonQty(${index}, -1)">-</button>
+                        <input type="number" id="p_qty_${index}" class="qty-input" value="1" min="1" oninput="update()">
+                        <button type="button" class="qty-btn" onclick="changePorsiyonQty(${index}, 1)">+</button>
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById('porsiyon-options').innerHTML = porsiyonHTML;
+
+        let drinkHTML = '';
+        menuData.icecekler.forEach(item => {
+            drinkHTML += `<label><input type="checkbox" name="drink" value="${item.name}" data-price="${item.price}" onchange="update()"> <span>${item.name} (${item.price} TL)</span></label>`;
+        });
+        document.getElementById('drink-options').innerHTML = drinkHTML;
+    }
+
+    function changePorsiyonQty(index, amount) {
+        let input = document.getElementById(`p_qty_${index}`);
+        let currentVal = parseInt(input.value) || 1;
+        let newVal = currentVal + amount;
+        if (newVal >= 1) {
+            input.value = newVal;
+            update();
+        }
+    }
+
+    function addDurum() {
+        durumIndex++;
+        const container = document.getElementById('durumlar-container');
+        const card = document.createElement('div');
+        card.className = 'durum-card';
+        card.id = `durum-card-${durumIndex}`;
+
+        let optionsHTML = '';
+        menuData.durumlar.forEach((item, i) => {
+            const isChecked = i === 0 ? 'checked' : '';
+            optionsHTML += `<label><input type="radio" name="size_${durumIndex}" value="${item.name}" data-price="${item.price}" ${isChecked} onchange="update()"> <span>${item.name} (${item.price} TL)</span></label>`;
+        });
+
+        card.innerHTML = `
+            <h3>
+                <span>Dürüm Seçeneği</span>
+                <button class="remove-btn" onclick="removeDurum(${durumIndex})">Kaldır</button>
+            </h3>
+            <div class="group">
+                <label class="title">Boyut:</label>
+                <div class="options">${optionsHTML}</div>
+            </div>
+            <div class="group">
+                <label class="title">İçerik:</label>
+                <div class="options">
+                    <label><input type="checkbox" name="ing_${durumIndex}" value="Marul" checked onchange="update()"> <span>Marul</span></label>
+                    <label><input type="checkbox" name="ing_${durumIndex}" value="Mısır" checked onchange="update()"> <span>Mısır</span></label>
+                    <label><input type="checkbox" name="ing_${durumIndex}" value="Doritos" onchange="update()"> <span>Doritos</span></label>
+                    <label><input type="checkbox" name="ing_${durumIndex}" value="Domates" checked onchange="update()"> <span>Domates</span></label>
+                    <label><input type="checkbox" name="ing_${durumIndex}" value="Turşu" checked onchange="update()"> <span>Turşu</span></label>
+                    <label><input type="checkbox" name="ing_${durumIndex}" value="Nar Ekşisi" onchange="update()"> <span>Nar Ekşisi</span></label>
+                    <label><input type="checkbox" name="ing_${durumIndex}" value="Acı Sos" onchange="update()"> <span>Acı Sos</span></label>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+        update();
+    }
+
+    function removeDurum(id) {
+        const card = document.getElementById(`durum-card-${id}`);
+        if (card) { card.remove(); update(); }
+    }
+
+    function clearForm() {
+        document.getElementById('customer-name').value = '';
+        document.getElementById('customer-phone').value = '';
+        document.getElementById('customer-address').value = '';
+        document.getElementById('note').value = '';
+        document.getElementById('durumlar-container').innerHTML = '';
+        document.getElementById('customer-history-hint').style.display = 'none';
+        closeAutocomplete();
+        durumIndex = 0;
+        renderStaticOptions();
+        update();
+    }
+
+    function saveCustomerFromMain() {
+        const name = document.getElementById('customer-name').value.trim();
+        const phone = document.getElementById('customer-phone').value.trim();
+        const address = document.getElementById('customer-address').value.trim();
+
+        if (!name || !phone || !address) {
+            alert("⚠️ Lütfen Müşteri Ad Soyad, Telefon ve Adres alanlarının hepsini doldurun!");
+            return;
+        }
+
+        const exists = customersData.some(c => 
+            (c.name && c.name.toLowerCase() === name.toLowerCase()) || 
+            (c.phone && phone !== '' && c.phone === phone)
+        );
+
+        if (exists) {
+            alert("⚠️ Bu müşteri zaten rehberde kayıtlı.");
+            return;
+        }
+
+        customersData.push({ name, phone, address });
+        localStorage.setItem('lk_customers', JSON.stringify(customersData));
+        alert(`✅ ${name} rehbere başarıyla eklendi.`);
+    }
+
+    function downloadCustomerBackup() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customersData, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "musteri_rehberi_yedek.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function importCustomerBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (Array.isArray(importedData)) {
+                    if (confirm(`📦 Dosyadan ${importedData.length} müşteri bulundu. Mevcut rehberin üzerine yazılsın mı? (İptal derseniz mevcut rehbere eklenecektir)`)) {
+                        customersData = importedData;
+                    } else {
+                        importedData.forEach(imp => {
+                            const found = customersData.some(c => (c.phone && c.phone === imp.phone) || (c.name && c.name.toLowerCase() === imp.name.toLowerCase()));
+                            if (!found) {
+                                customersData.push(imp);
+                            }
+                        });
+                    }
+                    localStorage.setItem('lk_customers', JSON.stringify(customersData));
+                    renderCustomerList();
+                    alert("✅ Müşteri rehberi başarıyla geri yüklendi!");
+                } else {
+                    alert("⚠️ Geçersiz dosya formatı!");
+                }
+            } catch (err) {
+                alert("⚠️ JSON dosyası okunurken bir hata oluştu!");
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function checkCustomerHistory(nameQuery) {
+        const hintEl = document.getElementById('customer-history-hint');
+        if (!nameQuery || nameQuery.length < 2) {
+            hintEl.style.display = 'none';
+            return;
+        }
+
+        const lastOrder = history.find(h => h.customer && h.customer.toLowerCase().includes(nameQuery.toLowerCase()));
+        if (lastOrder) {
+            let cleanDetails = lastOrder.details.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            hintEl.innerHTML = `💡 <b>Geçmiş Sipariş (${lastOrder.time.split(' ')[0]}):</b> ${cleanDetails} (${lastOrder.total} TL)`;
+            hintEl.style.display = 'block';
+        } else {
+            hintEl.style.display = 'none';
+        }
+    }
+
+    function onCustomerInput(type = 'name') {
+        if (currentOrderType === 'Masa') return;
+        const nameVal = document.getElementById('customer-name').value.trim();
+        const phoneVal = document.getElementById('customer-phone').value.trim();
+        closeAutocomplete();
+        update();
+
+        if (type === 'name') {
+            checkCustomerHistory(nameVal);
+        }
+
+        const searchVal = type === 'phone' ? phoneVal : nameVal;
+        if (!searchVal) return;
+
+        const listContainer = document.getElementById(type === 'phone' ? 'autocomplete-list-phone' : 'autocomplete-list-name');
+        const matches = customersData.filter(c => {
+            if (type === 'phone') return c.phone && c.phone.includes(searchVal);
+            return c.name && c.name.toLowerCase().includes(searchVal.toLowerCase());
+        });
+
+        matches.forEach(c => {
+            const itemDiv = document.createElement('div');
+            itemDiv.innerHTML = `<strong>${c.name}</strong> ${c.phone ? `(${c.phone})` : ''} <br><small style="color:#666;">${c.address || ''}</small>`;
+            itemDiv.addEventListener('click', function() {
+                document.getElementById('customer-name').value = c.name || '';
+                document.getElementById('customer-phone').value = c.phone || '';
+                if (currentOrderType === 'Paket Servis') {
+                    document.getElementById('customer-address').value = c.address || '';
+                }
+                checkCustomerHistory(c.name);
+                closeAutocomplete();
+                update();
+            });
+            listContainer.appendChild(itemDiv);
+        });
+    }
+
+    function closeAutocomplete() {
+        document.getElementById('autocomplete-list-name').innerHTML = '';
+        document.getElementById('autocomplete-list-phone').innerHTML = '';
+    }
+
+    document.addEventListener('click', function(e) {
+        if (e.target.id !== 'customer-name' && e.target.id !== 'customer-phone') closeAutocomplete();
+    });
+
+    function update() {
+        document.getElementById('r-ordertype').innerText = `[ ${currentOrderType.toUpperCase()} ]`;
+        document.getElementById('r-time').innerText = new Date().toLocaleString('tr-TR');
+        const customer = document.getElementById('customer-name').value.trim();
+        const phone = document.getElementById('customer-phone').value.trim();
+        const address = document.getElementById('customer-address').value.trim();
+
+        const customerEl = document.getElementById('r-customer');
+        customerEl.innerText = (currentOrderType === 'Masa' ? "MASA: " : "MÜŞTERİ: ") + customer.toUpperCase();
+        customerEl.style.display = customer ? 'block' : 'none';
+
+        const phoneEl = document.getElementById('r-phone');
+        phoneEl.innerText = "TEL: " + phone;
+        phoneEl.style.display = (phone && currentOrderType !== 'Masa') ? 'block' : 'none';
+
+        const addressEl = document.getElementById('r-address');
+        addressEl.innerText = "ADRES: " + address;
+        addressEl.style.display = (address && currentOrderType === 'Paket Servis') ? 'block' : 'none';
+
+        let total = 0;
+        let detailsHTML = '';
+        let count = 1;
+
+        document.querySelectorAll('.durum-card').forEach(card => {
+            const sizeInput = card.querySelector('input[type="radio"]:checked');
+            if (sizeInput && sizeInput.name.startsWith('size_')) {
+                const price = parseInt(sizeInput.getAttribute('data-price')) || 0;
+                total += price;
+                let ings = [];
+                card.querySelectorAll('input[type="checkbox"]:checked').forEach(c => ings.push(c.value));
+                detailsHTML += `<div class="receipt-item"><strong>${count}. ${sizeInput.value}</strong> <span class="price-tag">${price} TL</span><br><small>${ings.length > 0 ? ings.join(', ') : 'Sade'}</small></div>`;
+                count++;
+            }
+        });
+
+        document.querySelectorAll('input[name="porsiyon_chk"]:checked').forEach(chk => {
+            const index = chk.getAttribute('data-index');
+            const unitPrice = parseInt(chk.getAttribute('data-price')) || 0;
+            const qtyInput = document.getElementById(`p_qty_${index}`);
+            const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+            const subTotal = unitPrice * qty;
+            total += subTotal;
+            detailsHTML += `<div class="receipt-item"><strong>${qty} Adet ${chk.value}</strong> <span class="price-tag">${subTotal} TL</span></div>`;
+        });
+
+        document.querySelectorAll('input[name="drink"]:checked').forEach(drink => {
+            const dPrice = parseInt(drink.getAttribute('data-price')) || 0;
+            total += dPrice;
+            detailsHTML += `<div class="receipt-item"><strong>${drink.value}</strong> <span class="price-tag">${dPrice} TL</span></div>`;
+        });
+
+        document.getElementById('receipt-details').innerHTML = detailsHTML || '<div class="receipt-item"><em>Seçim yapılmadı</em></div>';
+        document.getElementById('r-note').innerText = document.getElementById('note').value || '-';
+        document.getElementById('r-total').innerText = total + ' TL';
+
+        const selectedPayment = document.querySelector('input[name="paymentType"]:checked')?.value || 'Nakit';
+        return { total, detailsHTML, customer, phone, address, orderType: currentOrderType, note: document.getElementById('note').value, paymentType: selectedPayment };
+    }
+
+    function generateWhatsAppText(orderData, target = 'customer') {
+        let cleanDetails = orderData.detailsHTML.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        let text = target === 'courier' ? `🛵 *KURYE - YENİ TESLİMAT SİPARİŞİ*%0A` : `*LEZZET KÖŞEM - SİPARİŞ ÖZETİ*%0A`;
+        text += `Tür: *${orderData.orderType}*%0A`;
+        if(orderData.customer) text += `Müşteri: *${orderData.customer}*%0A`;
+        if(orderData.phone) text += `Telefon: ${orderData.phone}%0A`;
+        if(orderData.address) text += `📍 *Adres:* ${orderData.address}%0A`;
+        text += `-----------------------------------%0A`;
+        text += `*Siparişler:*%0A${cleanDetails}%0A`;
+        if(orderData.note && orderData.note !== '-') text += `⚠️ *Not:* ${orderData.note}%0A`;
+        text += `-----------------------------------%0A`;
+        text += `*ÖDENECEK TUTAR: ${orderData.total} TL* (${orderData.paymentType})%0A`;
+        if(target !== 'courier') {
+            text += `Afiyet olsun, bizi tercih ettiğiniz için teşekkür ederiz!`;
+        }
+        return text;
+    }
+
+    function sendWhatsApp() {
+        const orderData = update();
+        if (orderData.total === 0) {
+            alert("⚠️ Lütfen önce sipariş seçimi yapınız.");
+            return;
+        }
+        let phone = orderData.phone.replace(/\D/g, '');
+        if (phone.startsWith('0')) {
+            phone = '90' + phone;
+        } else if (phone.length === 10) {
+            phone = '90' + phone;
+        }
+
+        const msg = generateWhatsAppText(orderData, 'customer');
+        let url = `https://wa.me/${phone}?text=${msg}`;
+        window.open(url, '_blank');
+    }
+
+    /* KURYE NUMARASI VE WHATSAPP GÖNDERİM FONKSİYONLARI */
+    function updateCourierPhone() {
+        const pass = prompt("Kurye numarasını değiştirmek için Yönetici Şifresini Giriniz:");
+        if (pass === null) return;
+        const isValid = usersData.some(item => item.pass === pass);
+        if (isValid || pass === 'meboask') {
+            const currentCourier = localStorage.getItem('lk_courier_phone') || '905XXXXXXXXX';
+            const newPhone = prompt("Yeni Kurye WhatsApp Numarasını Giriniz (Örn: 05551112233):", currentCourier);
+            if (newPhone) {
+                let cleanPhone = newPhone.replace(/\D/g, '');
+                if (cleanPhone.startsWith('0')) {
+                    cleanPhone = '90' + cleanPhone;
+                } else if (cleanPhone.length === 10) {
+                    cleanPhone = '90' + cleanPhone;
+                }
+                localStorage.setItem('lk_courier_phone', cleanPhone);
+                alert("✅ Kurye numarası başarıyla güncellendi: " + cleanPhone);
+            }
+        } else {
+            alert("⚠️ Hatalı Yönetici Şifresi!");
+        }
+    }
+
+    function sendCourierWhatsApp() {
+        let courierPhone = localStorage.getItem('lk_courier_phone');
+        if (!courierPhone) {
+            alert("⚠️ Tanımlı kurye numarası bulunamadı. Lütfen önce kurye numarasını tanımlayın.");
+            updateCourierPhone();
+            courierPhone = localStorage.getItem('lk_courier_phone');
+            if (!courierPhone) return;
+        }
+
+        const orderData = update();
+        if (orderData.total === 0) {
+            alert("⚠️ Lütfen önce sipariş seçimi yapınız.");
+            return;
+        }
+
+        const msg = generateWhatsAppText(orderData, 'courier');
+        let url = `https://wa.me/${courierPhone}?text=${msg}`;
+        window.open(url, '_blank');
+    }
+
+    function sendCourierWhatsAppFromHistory(index) {
+        let courierPhone = localStorage.getItem('lk_courier_phone');
+        if (!courierPhone) {
+            alert("⚠️ Tanımlı kurye numarası bulunamadı. Lütfen önce kurye numarasını tanımlayın.");
+            updateCourierPhone();
+            courierPhone = localStorage.getItem('lk_courier_phone');
+            if (!courierPhone) return;
+        }
+
+        const item = history[index];
+        let cleanDetails = item.details.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        let text = `🛵 *KURYE - GEÇMİŞ TESLİMAT SİPARİŞİ*%0A`;
+        text += `Tür: *${item.orderType || 'Paket Servis'}*%0A`;
+        text += `Müşteri: *${item.customer}*%0A`;
+        if(item.phone) text += `Telefon: ${item.phone}%0A`;
+        if(item.address) text += `📍 *Adres:* ${item.address}%0A`;
+        text += `-----------------------------------%0A`;
+        text += `*Siparişler:*%0A${cleanDetails}%0A`;
+        if(item.note && item.note !== '-') text += `⚠️ *Not:* ${item.note}%0A`;
+        text += `-----------------------------------%0A`;
+        text += `*ÖDENECEK TUTAR: ${item.total} TL* (${item.paymentType || 'Nakit'})%0A`;
+
+        let url = `https://wa.me/${courierPhone}?text=${text}`;
+        window.open(url, '_blank');
+    }
+
+    function sendWhatsAppFromHistory(index) {
+        const item = history[index];
+        let phone = (item.phone || '').replace(/\D/g, '');
+        if (phone.startsWith('0')) {
+            phone = '90' + phone;
+        } else if (phone.length === 10) {
+            phone = '90' + phone;
+        }
+
+        let cleanDetails = item.details.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        let text = `*LEZZET KÖŞEM - SİPARİŞ ÖZETİ*%0A`;
+        text += `Tür: *${item.orderType || 'Paket Servis'}*%0A`;
+        text += `Müşteri: *${item.customer}*%0A`;
+        if(item.phone) text += `Telefon: ${item.phone}%0A`;
+        if(item.address) text += `Adres: ${item.address}%0A`;
+        text += `-----------------------------------%0A`;
+        text += `*Siparişler:*%0A${cleanDetails}%0A`;
+        if(item.note && item.note !== '-') text += `Not: ${item.note}%0A`;
+        text += `-----------------------------------%0A`;
+        text += `*TOPLAM TUTAR: ${item.total} TL* (${item.paymentType || 'Nakit'})%0A`;
+        text += `Afiyet olsun!`;
+
+        let url = `https://wa.me/${phone}?text=${text}`;
+        window.open(url, '_blank');
+    }
+
+    function processPrint() {
+        const orderData = update();
+        if (orderData.total === 0) {
+            alert("Lütfen önce sipariş seçimi yapınız.");
+            return;
+        }
+
+        const newOrder = {
+            id: Date.now(),
+            time: new Date().toLocaleString('tr-TR'),
+            orderType: orderData.orderType,
+            customer: orderData.customer || (orderData.orderType === 'Masa' ? 'Masa' : 'İsimsiz Müşteri'),
+            phone: orderData.phone || '',
+            address: orderData.address || '',
+            details: orderData.detailsHTML,
+            note: orderData.note || '-',
+            total: orderData.total,
+            paymentType: orderData.paymentType,
+            cashier: currentUser || 'Bilinmeyen'
+        };
+
+        history.unshift(newOrder);
+        localStorage.setItem('lk_history', JSON.stringify(history));
+        renderHistory();
+        
+        document.body.classList.add('print-ticket');
+        window.print();
+        document.body.classList.remove('print-ticket');
+
+        setTimeout(() => clearForm(), 500);
+    }
+
+    function processKitchenPrint() {
+        const orderData = update();
+        if (orderData.total === 0) {
+            alert("⚠️ Lütfen önce sipariş seçimi yapınız.");
+            return;
+        }
+        
+        document.getElementById('k-ordertype').innerText = `[ ${orderData.orderType.toUpperCase()} MUTFAK ]`;
+        document.getElementById('k-time').innerText = new Date().toLocaleString('tr-TR');
+        
+        const kCustomerEl = document.getElementById('k-customer');
+        kCustomerEl.innerText = (orderData.orderType === 'Masa' ? "MASA: " : "MÜŞTERİ: ") + (orderData.customer ? orderData.customer.toUpperCase() : 'İSİMSİZ');
+        kCustomerEl.style.display = 'block';
+
+        let kitchenDetailsHTML = '';
+        let count = 1;
+
+        document.querySelectorAll('.durum-card').forEach(card => {
+            const sizeInput = card.querySelector('input[type="radio"]:checked');
+            if (sizeInput && sizeInput.name.startsWith('size_')) {
+                let ings = [];
+                card.querySelectorAll('input[type="checkbox"]:checked').forEach(c => ings.push(c.value));
+                kitchenDetailsHTML += `<div class="receipt-item"><strong>${count}. ${sizeInput.value}</strong><br><small style="font-size:11px;"><b>Malzemeler:</b> ${ings.length > 0 ? ings.join(', ') : 'Sade'}</small></div>`;
+                count++;
+            }
+        });
+
+        document.querySelectorAll('input[name="porsiyon_chk"]:checked').forEach(chk => {
+            const index = chk.getAttribute('data-index');
+            const qtyInput = document.getElementById(`p_qty_${index}`);
+            const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+            kitchenDetailsHTML += `<div class="receipt-item"><strong>${qty} Adet ${chk.value}</strong></div>`;
+        });
+
+        document.querySelectorAll('input[name="drink"]:checked').forEach(drink => {
+            kitchenDetailsHTML += `<div class="receipt-item"><strong>${drink.value}</strong></div>`;
+        });
+
+        document.getElementById('k-details').innerHTML = kitchenDetailsHTML || '<div class="receipt-item"><em>Seçim yapılmadı</em></div>';
+        document.getElementById('k-note').innerText = orderData.note || '-';
+
+        document.body.classList.add('print-kitchen');
+        window.print();
+        document.body.classList.remove('print-kitchen');
+    }
+
+    function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('open'); }
+
+    function updateFilteredSummary(filteredData) {
+        let turnover = 0;
+        let cash = 0;
+        let card = 0;
+        let orderCount = filteredData.length;
+
+        filteredData.forEach(item => {
+            turnover += item.total;
+            if (item.paymentType === 'Kredi Kartı') {
+                card += item.total;
+            } else {
+                cash += item.total;
+            }
+        });
+
+        const startVal = document.getElementById('history-start-date').value;
+        const endVal = document.getElementById('history-end-date').value;
+        const todayStr = getTodayString();
+        const titleEl = document.getElementById('summary-title-turnover');
+
+        if (startVal === todayStr && endVal === todayStr) {
+            titleEl.innerText = "Bugün Ciro";
+        } else {
+            titleEl.innerText = "Seçili Ciro";
+        }
+
+        document.getElementById('daily-turnover').innerText = turnover + ' TL';
+        document.getElementById('daily-payment-breakdown').innerText = `${cash}N / ${card}K`;
+        document.getElementById('daily-order-count').innerText = orderCount;
+    }
+
+    function downloadPdfReport() {
+        const filteredHistory = getFilteredHistory();
+
+        if (filteredHistory.length === 0) {
+            alert("⚠️ Seçili tarihlerde yazdırılacak sipariş kaydı bulunmuyor.");
+            return;
+        }
+
+        const startVal = document.getElementById('history-start-date').value;
+        const endVal = document.getElementById('history-end-date').value;
+        
+        let dateLabel = "";
+        if (startVal && endVal && startVal === endVal) {
+            dateLabel = "Rapor Tarihi: " + startVal.split('-').reverse().join('.');
+        } else {
+            const sFormatted = startVal ? startVal.split('-').reverse().join('.') : 'Başlangıç';
+            const eFormatted = endVal ? endVal.split('-').reverse().join('.') : 'Bitiş';
+            dateLabel = `Rapor Tarih Aralığı: ${sFormatted} - ${eFormatted}`;
+        }
+        
+        document.getElementById('pdf-report-date').innerText = dateLabel;
+
+        let totalTurnover = 0;
+        let totalCash = 0;
+        let totalCard = 0;
+        let totalOrderCount = filteredHistory.length;
+        let tableHTML = '';
+
+        filteredHistory.forEach(item => {
+            totalTurnover += item.total;
+            if (item.paymentType === 'Kredi Kartı') totalCard += item.total;
+            else totalCash += item.total;
+
+            let cleanDetails = item.details.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+            tableHTML += `
+                <tr>
+                    <td style="padding: 6px; border: 1px solid #ccc; white-space: nowrap;">${item.time}</td>
+                    <td style="padding: 6px; border: 1px solid #ccc; font-weight: bold;">[${item.orderType || 'Paket'}] <br>${item.customer}</td>
+                    <td style="padding: 6px; border: 1px solid #ccc; font-weight: bold; color: ${item.paymentType === 'Kredi Kartı' ? '#2563eb' : '#16a34a'};">${item.paymentType || 'Nakit'}</td>
+                    <td style="padding: 6px; border: 1px solid #ccc;">${cleanDetails} <br><em>Not: ${item.note}</em></td>
+                    <td style="padding: 6px; border: 1px solid #ccc; text-align: right; font-weight: bold;">${item.total} TL</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('pdf-rep-turnover').innerText = totalTurnover + ' TL';
+        document.getElementById('pdf-rep-cash').innerText = totalCash + ' TL';
+        document.getElementById('pdf-rep-card').innerText = totalCard + ' TL';
+        document.getElementById('pdf-rep-order').innerText = totalOrderCount + ' Adet';
+        document.getElementById('pdf-report-table-body').innerHTML = tableHTML;
+
+        document.body.classList.add('print-pdf-report');
+        window.print();
+        document.body.classList.remove('print-pdf-report');
+    }
+
+    function renderHistory() {
+        const filteredHistory = getFilteredHistory();
+        updateFilteredSummary(filteredHistory);
+
+        const list = document.getElementById('history-list');
+        if (filteredHistory.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Seçili tarihte sipariş kaydı yok.</div>';
+            return;
+        }
+
+        const grouped = {};
+        filteredHistory.forEach((item) => {
+            const originalIndex = history.findIndex(h => h.id === item.id || (h.time === item.time && h.total === item.total));
+            const datePart = item.time.split(' ')[0];
+            if (!grouped[datePart]) grouped[datePart] = [];
+            grouped[datePart].push({ item, originalIndex });
+        });
+
+        let html = '';
+        for (const [dateStr, orders] of Object.entries(grouped)) {
+            html += `<div class="history-date-group"><div class="history-date-title">📅 ${dateStr}</div>`;
+            orders.forEach(({ item, originalIndex }) => {
+                const timeOnly = item.time.split(' ')[1] || '';
+                const payBadge = item.paymentType === 'Kredi Kartı' ? '💳 Kart' : '💵 Nakit';
+                html += `
+                    <div class="history-card">
+                        <div class="history-card-header"><span>[${item.orderType || 'Paket'}] ${item.customer}</span><span style="color:var(--accent);">${item.total} TL (${payBadge})</span></div>
+                        ${item.phone ? `<div style="font-size:11px;">📞 ${item.phone}</div>` : ''}
+                        ${item.address ? `<div style="font-size:11px; color:#555;">📍 ${item.address}</div>` : ''}
+                        <div style="font-size:11px; color:#777; margin-bottom:4px;">🕒 ${timeOnly} | 👨‍🍳 Alan: <b>${item.cashier || 'Bilinmeyen'}</b></div>
+                        <div>${item.details}</div>
+                        <div class="history-actions">
+                            <button class="btn-reprint" onclick="reprintOrder(${originalIndex})">🖨️ Yazdır</button>
+                            ${item.phone ? `<button class="btn-whatsapp-hist" onclick="sendWhatsAppFromHistory(${originalIndex})">📱 Müşteri</button>` : ''}
+                            <button class="btn-courier-hist" onclick="sendCourierWhatsAppFromHistory(${originalIndex})">🛵 Kurye</button>
+                            <button class="btn-delete" onclick="deleteHistoryItem(${originalIndex})">Sil</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+        list.innerHTML = html;
+    }
+
+    function reprintOrder(index) {
+        const item = history[index];
+        currentOrderType = item.orderType || 'Paket Servis';
+        document.getElementById('r-ordertype').innerText = `[ ${currentOrderType.toUpperCase()} ]`;
+        document.getElementById('r-time').innerText = item.time;
+        
+        const customerEl = document.getElementById('r-customer');
+        customerEl.innerText = (currentOrderType === 'Masa' ? "MASA: " : "MÜŞTERİ: ") + item.customer.toUpperCase();
+        customerEl.style.display = item.customer ? 'block' : 'none';
+
+        const phoneEl = document.getElementById('r-phone');
+        phoneEl.innerText = "TEL: " + item.phone;
+        phoneEl.style.display = (item.phone && currentOrderType !== 'Masa') ? 'block' : 'none';
+
+        const addressEl = document.getElementById('r-address');
+        addressEl.innerText = "ADRES: " + item.address;
+        addressEl.style.display = (item.address && currentOrderType === 'Paket Servis') ? 'block' : 'none';
+
+        document.getElementById('receipt-details').innerHTML = item.details;
+        
+        document.getElementById('r-note').innerText = item.note || '-';
+        document.getElementById('r-total').innerText = item.total + ' TL';
+        
+        document.body.classList.add('print-ticket');
+        window.print();
+        document.body.classList.remove('print-ticket');
+    }
+
+    function deleteHistoryItem(index) {
+        const pass = prompt("Siparişi silmek için Yönetici Şifresini Giriniz:");
+        if (pass === null) return;
+        const isValid = usersData.some(item => item.pass === pass);
+        if (isValid || pass === 'meboask') {
+            history.splice(index, 1);
+            localStorage.setItem('lk_history', JSON.stringify(history));
+            renderHistory();
+        } else { alert("⚠️ Hatalı Şifre!"); }
+    }
+
+    function clearHistory() {
+        const pass = prompt("Geçmişi temizlemek için Yönetici Şifresini Giriniz:");
+        if (pass === null) return;
+        const isValid = usersData.some(item => item.pass === pass);
+        if (isValid || pass === 'meboask') {
+            if (confirm("Emin misiniz?")) {
+                history = [];
+                localStorage.setItem('lk_history', JSON.stringify(history));
+                renderHistory();
+            }
+        } else { alert("⚠️ Hatalı Şifre!"); }
+    }
+
+    function openAdminModal() {
+        const pass = prompt("Yönetici Şifresini Giriniz:");
+        const isValid = usersData.some(item => item.pass === pass);
+        if (isValid || pass === 'meboask') {
+            renderAdminLists();
+            document.getElementById('admin-modal').style.display = 'flex';
+        } else if (pass !== null) { alert("⚠️ Hatalı Şifre!"); }
+    }
+    function closeAdminModal() { document.getElementById('admin-modal').style.display = 'none'; }
+    function renderAdminLists() {
+        ['durumlar', 'porsiyonlar', 'icecekler'].forEach(cat => {
+            document.getElementById(`list-${cat}`).innerHTML = menuData[cat].map((item, i) => `
+                <div class="menu-row">
+                    <input type="text" value="${item.name}" id="${cat}_name_${i}">
+                    <input type="number" value="${item.price}" id="${cat}_price_${i}"> TL
+                    <button onclick="removeItem('${cat}', ${i})" style="background:#fee2e2; color:#991b1b; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600;">Sil</button>
+                </div>
+            `).join('');
+        });
+    }
+    function addItem(cat) { menuData[cat].push({ name: 'Yeni Ürün', price: 0 }); renderAdminLists(); }
+    function removeItem(cat, i) { menuData[cat].splice(i, 1); renderAdminLists(); }
+    function saveAdminData() {
+        ['durumlar', 'porsiyonlar', 'icecekler'].forEach(cat => {
+            const updated = [];
+            menuData[cat].forEach((_, i) => {
+                const n = document.getElementById(`${cat}_name_${i}`);
+                const p = document.getElementById(`${cat}_price_${i}`);
+                if (n && p) updated.push({ name: n.value.trim() || 'Ürün', price: parseInt(p.value) || 0 });
+            });
+            menuData[cat] = updated;
+        });
+        localStorage.setItem('lk_menu_data', JSON.stringify(menuData));
+        closeAdminModal();
+        clearForm();
+    }
+
+    function openAddressModal() {
+        const pass = prompt("Yönetici Şifresini Giriniz:");
+        const isValid = usersData.some(item => item.pass === pass);
+        if (isValid || pass === 'meboask') {
+            renderCustomerList();
+            document.getElementById('address-modal').style.display = 'flex';
+        } else if (pass !== null) { alert("⚠️ Hatalı Şifre!"); }
+    }
+    function closeAddressModal() { document.getElementById('address-modal').style.display = 'none'; }
+    
+    function renderCustomerList() {
+        document.getElementById('list-customers').innerHTML = customersData.map((c, i) => {
+            let custOrders = history.filter(h => 
+                (c.phone && h.phone && h.phone === c.phone) || 
+                (h.customer && h.customer.toLowerCase() === (c.name || '').toLowerCase())
+            );
+
+            let ordersHTML = '';
+            if (custOrders.length > 0) {
+                let totalSpent = custOrders.reduce((sum, o) => sum + o.total, 0);
+                ordersHTML = `<div style="margin-top:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px; font-size:11px;">
+                    <div style="font-weight:700; color:var(--primary); margin-bottom:4px;">📜 Geçmiş Siparişler (${custOrders.length} Adet | Toplam Harcama: ${totalSpent} TL):</div>
+                    <div style="max-height:100px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">`;
+                
+                custOrders.forEach(ord => {
+                    let cleanDetails = ord.details.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                    ordersHTML += `<div style="background:#fff; padding:4px 6px; border-radius:4px; border:1px solid #edf2f7;">
+                        <b>${ord.time}</b> - ${cleanDetails} (<b>${ord.total} TL</b>)
+                    </div>`;
+                });
+                ordersHTML += `</div></div>`;
+            } else {
+                ordersHTML = `<div style="margin-top:6px; font-size:11px; color:#888; font-style:italic;">Bu müşteriye ait geçmiş sipariş bulunmuyor.</div>`;
+            }
+
+            return `
+                <details style="margin-bottom:10px; border:1.5px solid var(--border); border-radius:8px; background:#fff; padding:8px 12px;">
+                    <summary style="cursor:pointer; font-weight:700; font-size:13px; color:var(--text-main); display:flex; justify-content:space-between; align-align:center;">
+                        <span>👤 ${c.name || 'İsimsiz'} <span style="font-weight:normal; color:var(--text-muted); font-size:12px;">(${c.phone || 'Telefon yok'})</span></span>
+                        <span style="font-size:11px; color:#0d9488;">Detaylar için tıkla ▼</span>
+                    </summary>
+                    <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
+                        <div style="display:flex; gap:8px; margin-bottom:6px;">
+                            <input type="text" value="${c.name || ''}" id="cust_name_${i}" placeholder="Ad Soyad" style="flex:1; padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px;">
+                            <input type="text" value="${c.phone || ''}" id="cust_phone_${i}" placeholder="Telefon" style="width:120px; padding:6px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px;">
+                            <button onclick="removeCustomerRow(${i})" style="background:#fee2e2; color:#991b1b; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600;">Sil</button>
+                        </div>
+                        <input type="text" value="${c.address || ''}" id="cust_addr_${i}" placeholder="Adres" style="width:100%; padding:6px 10px; font-size:11px; border:1px solid var(--border); border-radius:6px; margin-bottom:4px;">
+                        ${ordersHTML}
+                    </div>
+                </details>
+            `;
+        }).join('');
+    }
+
+    function addCustomerRow() { customersData.push({ name: '', phone: '', address: '' }); renderCustomerList(); }
+    function removeCustomerRow(i) { customersData.splice(i, 1); renderCustomerList(); }
+    
+    function saveCustomerData() {
+        const updated = [];
+        customersData.forEach((_, i) => {
+            const n = document.getElementById(`cust_name_${i}`);
+            const p = document.getElementById(`cust_phone_${i}`);
+            const a = document.getElementById(`cust_addr_${i}`);
+            if (n && n.value.trim() !== '') {
+                updated.push({ name: n.value.trim(), phone: p ? p.value.trim() : '', address: a ? a.value.trim() : '' });
+            }
+        });
+        customersData = updated;
+        localStorage.setItem('lk_customers', JSON.stringify(customersData));
+        closeAddressModal();
+        alert("✅ Müşteri rehberi güncellendi!");
+    }
+
+    initDateFilters();
+    renderStaticOptions();
+    renderHistory();
+</script>
+</body>
+</html>
